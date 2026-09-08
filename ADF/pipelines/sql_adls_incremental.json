@@ -1,0 +1,170 @@
+{
+  "name": "sql_adls_incremental",
+  "properties": {
+    "activities": [
+      {
+        "name": "lastdate",
+        "type": "Lookup",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "source": {
+            "type": "AzureSqlSource",
+            "sqlReaderQuery": "select * from dateholder",
+            "queryTimeout": "02:00:00",
+            "partitionOption": "None"
+          },
+          "dataset": {
+            "referenceName": "sqldb_ls",
+            "type": "DatasetReference",
+            "parameters": {}
+          }
+        }
+      },
+      {
+        "name": "maxdate",
+        "type": "Lookup",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "source": {
+            "type": "AzureSqlSource",
+            "sqlReaderQuery": "select max(OrderDate) as maximumdate from SalesOrders",
+            "queryTimeout": "02:00:00",
+            "partitionOption": "None"
+          },
+          "dataset": {
+            "referenceName": "sqldb_ls",
+            "type": "DatasetReference",
+            "parameters": {}
+          },
+          "firstRowOnly": true
+        }
+      },
+      {
+        "name": "newdate",
+        "type": "Copy",
+        "dependsOn": [
+          {
+            "activity": "maxdate",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "lastdate",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "source": {
+            "type": "AzureSqlSource",
+            "sqlReaderQuery": {
+              "value": "select * from SalesOrders where OrderDate > '@{activity('lastdate').output.firstRow.lastdate}' and OrderDate <= '@{activity('maxdate').output.firstRow.maximumdate}'",
+              "type": "Expression"
+            },
+            "queryTimeout": "02:00:00",
+            "partitionOption": "None"
+          },
+          "sink": {
+            "type": "ParquetSink",
+            "storeSettings": {
+              "type": "AzureBlobFSWriteSettings"
+            },
+            "formatSettings": {
+              "type": "ParquetWriteSettings"
+            }
+          },
+          "enableStaging": false,
+          "translator": {
+            "type": "TabularTranslator",
+            "typeConversion": true,
+            "typeConversionSettings": {
+              "allowDataTruncation": true,
+              "treatBooleanAsNumber": false
+            }
+          }
+        },
+        "inputs": [
+          {
+            "referenceName": "sqldb_ls",
+            "type": "DatasetReference",
+            "parameters": {}
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "adlsgen2_ls",
+            "type": "DatasetReference",
+            "parameters": {}
+          }
+        ]
+      },
+      {
+        "name": "update dateholder",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [
+          {
+            "activity": "newdate",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "storedProcedureName": "[[dbo].[updatedateholder]",
+          "storedProcedureParameters": {
+            "myvar": {
+              "value": {
+                "value": "@activity('maxdate').output.firstRow.maximumdate",
+                "type": "Expression"
+              },
+              "type": "DateTime"
+            }
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "AzureSqlDatabase1",
+          "type": "LinkedServiceReference"
+        }
+      }
+    ],
+    "policy": {
+      "elapsedTimeMetric": {}
+    },
+    "annotations": [],
+    "lastPublishTime": "2026-09-02T21:49:17Z"
+  }
+}

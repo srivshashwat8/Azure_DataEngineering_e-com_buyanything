@@ -1,0 +1,79 @@
+{
+  "name": "Master_Pipeline",
+  "properties": {
+    "activities": [
+      {
+        "name": "github_to_sql",
+        "type": "ExecutePipeline",
+        "dependsOn": [],
+        "policy": {
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "pipeline": {
+            "referenceName": "github_to_sql",
+            "type": "PipelineReference"
+          },
+          "waitOnCompletion": true,
+          "parameters": {}
+        }
+      },
+      {
+        "name": "sql_adls_incremental",
+        "type": "ExecutePipeline",
+        "dependsOn": [
+          {
+            "activity": "github_to_sql",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "pipeline": {
+            "referenceName": "sql_adls_incremental",
+            "type": "PipelineReference"
+          },
+          "waitOnCompletion": true,
+          "parameters": {}
+        }
+      },
+      {
+        "name": "Databricks",
+        "type": "DatabricksJob",
+        "dependsOn": [
+          {
+            "activity": "sql_adls_incremental",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 3,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "userProperties": [],
+        "typeProperties": {
+          "jobId": "266839530241690"
+        },
+        "linkedServiceName": {
+          "referenceName": "AzureDatabricks_ls",
+          "type": "LinkedServiceReference"
+        }
+      }
+    ],
+    "policy": {
+      "elapsedTimeMetric": {}
+    },
+    "annotations": []
+  }
+}
