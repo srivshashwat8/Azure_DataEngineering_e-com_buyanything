@@ -1,0 +1,12 @@
+{
+  "name": "HttpServer1",
+  "properties": {
+    "annotations": [],
+    "type": "HttpServer",
+    "typeProperties": {
+      "url": "[parameters('HttpServer1_properties_typeProperties_url')]",
+      "enableServerCertificateValidation": true,
+      "authenticationType": "Anonymous"
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "AzureDatabricks_ls",
+  "properties": {
+    "annotations": [],
+    "type": "AzureDatabricks",
+    "typeProperties": {
+      "domain": "https://adb-7405604982472186.6.azuredatabricks.net",
+      "accessToken": {
+        "type": "SecureString",
+        "value": "<DATABRICKS_ACCESS_TOKEN>"
+      },
+      "existingClusterId": "[parameters('AzureDatabricks_ls_properties_typeProperties_existingClusterId')]"
+    }
+  }
+}
